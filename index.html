@@ -1,0 +1,214 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="apple-touch-icon" href="icon-192.png">
+<title>App Hub</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f3b3a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: a phone home-screen launcher. Topic chips on top, icon grid below, edit sheet slides up. */
+:root{
+  --bg:#f3f6f5; --surface:#ffffff; --fg:#14211f; --muted:#5d6e6b; --line:#dde5e3;
+  --accent:#0f6b66; --accent-fg:#ffffff; --danger:#b3362f;
+  --display:"Sora",system-ui,sans-serif; --body:"Figtree",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1514; --surface:#16211f; --fg:#e4eeec; --muted:#8fa3a0; --line:#25332f;
+  --accent:#4fc2b9; --accent-fg:#06201e; --danger:#ef7d75; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1514; --surface:#16211f; --fg:#e4eeec; --muted:#8fa3a0; --line:#25332f;
+  --accent:#4fc2b9; --accent-fg:#06201e; --danger:#ef7d75; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font:700 1.5rem/1.1 var(--display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);font-size:.85rem;margin-top:2px}
+button,input,select,textarea{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;cursor:pointer;font-weight:600;font-size:.88rem}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn:focus-visible,.chip:focus-visible,.tile:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.search{width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chip{flex:none;border:1px solid var(--line);background:transparent;border-radius:999px;padding:7px 14px;cursor:pointer;font-weight:500;font-size:.88rem;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip .n{opacity:.6;margin-left:4px;font-variant-numeric:tabular-nums}
+.section h2{font:600 .72rem/1 var(--body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:6px 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:18px 10px}
+.tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;text-decoration:none;color:inherit;background:none;border:0;padding:0;cursor:pointer;min-width:0}
+.ico{width:60px;height:60px;border-radius:16px;display:grid;place-items:center;font:700 1.2rem var(--display);color:#fff;box-shadow:0 1px 2px rgb(0 0 0 / .12)}
+.lbl{font-size:.78rem;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.del{position:absolute;top:-6px;right:calc(50% - 38px);width:22px;height:22px;border-radius:50%;border:0;background:var(--danger);color:#fff;font-weight:700;line-height:22px;cursor:pointer;display:none}
+.editing .del{display:block}
+.editing .ico{animation:jig .25s ease-in-out infinite alternate}
+@keyframes jig{from{transform:rotate(-2deg)}to{transform:rotate(2deg)}}
+@media (prefers-reduced-motion:reduce){.editing .ico{animation:none}}
+.add .ico{background:transparent;border:2px dashed var(--line);color:var(--muted);box-shadow:none}
+.note{font-size:.8rem;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+.empty{color:var(--muted);padding:24px 0}
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgb(0 0 0 / .4);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-radius:20px 20px 0 0;max-width:720px;margin:0 auto;
+  padding:20px max(20px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));
+  display:flex;flex-direction:column;gap:12px;max-height:85vh;overflow:auto}
+.sheet h3{font:700 1.1rem var(--display);margin:0}
+label{display:flex;flex-direction:column;gap:5px;font-size:.82rem;font-weight:600;color:var(--muted)}
+.field{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-weight:400;color:var(--fg)}
+textarea.field{min-height:150px;font:12px/1.4 ui-monospace,monospace}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.sw{width:30px;height:30px;border-radius:9px;border:2px solid transparent;cursor:pointer}
+.sw[aria-checked="true"]{border-color:var(--fg)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:.85rem;z-index:30}
+</style>
+</head><body>
+
+<div class="wrap" id="app">
+  <header>
+    <div>
+      <h1 id="title">App Hub</h1>
+      <div class="sub" id="sub">Your web apps, grouped by topic</div>
+    </div>
+    <div class="row">
+      <button class="btn" id="menuBtn" type="button">Backup</button>
+      <button class="btn primary" id="editBtn" type="button">Edit</button>
+    </div>
+  </header>
+  <input class="search" id="q" type="search" placeholder="Search apps" aria-label="Search apps">
+  <nav class="chips" id="chips" aria-label="Topics"></nav>
+  <main id="main"></main>
+  <p class="note" id="note"></p>
+</div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+const COLORS=["#0f6b66","#2a5bd7","#7a3fc8","#c2410c","#b3362f","#3f7d20","#a16207","#334155"];
+const SAMPLE={example:true,topics:[{id:"work",name:"Work"},{id:"money",name:"Money"},{id:"daily",name:"Daily"}],
+ apps:[
+  {id:"a1",name:"Outlook",url:"https://outlook.office.com",topic:"work",color:"#2a5bd7"},
+  {id:"a2",name:"Power Apps",url:"https://make.powerapps.com",topic:"work",color:"#7a3fc8"},
+  {id:"a3",name:"Tableau",url:"https://online.tableau.com",topic:"work",color:"#c2410c"},
+  {id:"a4",name:"Presence Calc",url:"https://example.com",topic:"daily",color:"#b3362f"},
+  {id:"a5",name:"Budget",url:"https://example.com",topic:"money",color:"#3f7d20"},
+  {id:"a6",name:"Exchange",url:"https://example.com",topic:"money",color:"#a16207"},
+  {id:"a7",name:"Weather",url:"https://example.com",topic:"daily",color:"#0f6b66"},
+  {id:"a8",name:"Maps",url:"https://maps.google.com",topic:"daily",color:"#334155"}]};
+const KEY="apphub.v1";
+let data, current="all", editing=false;
+function load(){try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s)}catch(e){}return structuredClone(SAMPLE)}
+function save(){data.example=false;try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}}
+data=load();
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const initials=n=>n.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase()||"?";
+const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"topic";
+function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,1800)}
+
+// A topic can open on its own: index.html#work. Save that link to the home screen as its own hub.
+function fromHash(){const h=location.hash.slice(1);current=data.topics.some(t=>t.id===h)?h:"all";render()}
+window.addEventListener("hashchange",fromHash);
+
+function render(){
+  const q=$("#q").value.trim().toLowerCase();
+  const solo=location.hash.slice(1)===current&&current!=="all";
+  const topic=data.topics.find(t=>t.id===current);
+  $("#title").textContent=topic?topic.name:"App Hub";
+  $("#sub").textContent=topic?"Topic hub":"Your web apps, grouped by topic";
+  document.title=topic?topic.name+" Hub":"App Hub";
+  // chips
+  const count=id=>data.apps.filter(a=>id==="all"||a.topic===id).length;
+  $("#chips").innerHTML=[{id:"all",name:"All"},...data.topics].map(t=>
+    `<button class="chip" type="button" data-t="${t.id}" aria-pressed="${t.id===current}">${esc(t.name)}<span class="n">${count(t.id)}</span></button>`).join("")
+    +(editing?`<button class="chip" type="button" id="addTopic">+ Topic</button>`:"");
+  // sections
+  const match=a=>!q||a.name.toLowerCase().includes(q)||a.url.toLowerCase().includes(q);
+  const groups=current==="all"?data.topics:[topic];
+  let html="";
+  for(const g of groups){
+    const apps=data.apps.filter(a=>a.topic===g.id&&match(a));
+    if(!apps.length&&!editing)continue;
+    html+=`<section class="section"><h2>${esc(g.name)}${editing&&current!=="all"?` · <a href="#" data-deltopic="${g.id}" style="color:var(--danger)">delete topic</a>`:""}</h2><div class="grid ${editing?"editing":""}">`;
+    for(const a of apps)html+=`<div class="tile">${editing
+      ?`<button class="tile" type="button" data-edit="${a.id}"><span class="ico" style="background:${a.color}">${esc(initials(a.name))}</span><span class="lbl">${esc(a.name)}</span></button><button class="del" type="button" data-del="${a.id}" aria-label="Remove ${esc(a.name)}">×</button>`
+      :`<a class="tile" href="${esc(a.url)}" target="_blank" rel="noopener"><span class="ico" style="background:${a.color}">${esc(initials(a.name))}</span><span class="lbl">${esc(a.name)}</span></a>`}</div>`;
+    if(editing)html+=`<button class="tile add" type="button" data-add="${g.id}"><span class="ico">+</span><span class="lbl">Add app</span></button>`;
+    html+=`</div></section>`;
+  }
+  $("#main").innerHTML=html||`<p class="empty">${q?"No apps match that search.":"No apps here yet. Tap Edit, then Add app."}</p>`;
+  $("#editBtn").textContent=editing?"Done":"Edit";
+  $("#note").textContent=data.example?"These are example apps. Tap Edit to replace them with your own.":
+    (topic?`Tip: open this page and use “Add to Home Screen” to get a ${topic.name} hub icon.`:"Tip: pick a topic, then “Add to Home Screen” to get a hub icon for just that topic.");
+}
+
+$("#chips").addEventListener("click",e=>{
+  if(e.target.closest("#addTopic"))return topicSheet();
+  const c=e.target.closest("[data-t]");if(!c)return;
+  current=c.dataset.t;history.replaceState(null,"",current==="all"?location.pathname:"#"+current);render();
+});
+$("#main").addEventListener("click",e=>{
+  const d=e.target.closest("[data-del]"),ed=e.target.closest("[data-edit]"),ad=e.target.closest("[data-add]"),dt=e.target.closest("[data-deltopic]");
+  if(d){data.apps=data.apps.filter(a=>a.id!==d.dataset.del);save();render();toast("Removed")}
+  else if(ed)appSheet(data.apps.find(a=>a.id===ed.dataset.edit));
+  else if(ad)appSheet(null,ad.dataset.add);
+  else if(dt){e.preventDefault();confirmDeleteTopic(dt.dataset.deltopic)}
+});
+$("#editBtn").onclick=()=>{editing=!editing;render()};
+$("#q").oninput=render;
+$("#menuBtn").onclick=backupSheet;
+
+function sheet(inner){
+  close();const s=document.createElement("div");s.id="sheetWrap";
+  s.innerHTML=`<div class="scrim"></div><form class="sheet">${inner}</form>`;
+  document.body.append(s);s.querySelector(".scrim").onclick=close;
+  s.querySelector("[data-close]")?.addEventListener("click",close);
+  return s.querySelector("form");
+}
+function close(){$("#sheetWrap")?.remove()}
+
+function appSheet(app,topicId){
+  const isNew=!app;app=app||{name:"",url:"https://",topic:topicId||data.topics[0]?.id,color:COLORS[data.apps.length%COLORS.length]};
+  const f=sheet(`<h3>${isNew?"Add app":"Edit app"}</h3>
+    <label>Name<input class="field" id="fName" required value="${esc(app.name)}"></label>
+    <label>Web address<input class="field" id="fUrl" type="url" required value="${esc(app.url)}"></label>
+    <label>Topic<select class="field" id="fTopic">${data.topics.map(t=>`<option value="${t.id}" ${t.id===app.topic?"selected":""}>${esc(t.name)}</option>`).join("")}</select></label>
+    <label>Color<div class="swatches" role="radiogroup">${COLORS.map(c=>`<button type="button" class="sw" role="radio" aria-checked="${c===app.color}" data-c="${c}" style="background:${c}" aria-label="Color ${c}"></button>`).join("")}</div></label>
+    <div class="row"><button class="btn" type="button" data-close>Cancel</button><button class="btn primary" type="submit">${isNew?"Add":"Save"}</button></div>`);
+  let color=app.color;
+  f.querySelectorAll(".sw").forEach(b=>b.onclick=()=>{color=b.dataset.c;f.querySelectorAll(".sw").forEach(x=>x.setAttribute("aria-checked",x===b))});
+  f.onsubmit=e=>{e.preventDefault();
+    const v={name:$("#fName").value.trim(),url:$("#fUrl").value.trim(),topic:$("#fTopic").value,color};
+    if(isNew)data.apps.push({id:"a"+Date.now(),...v});else Object.assign(app,v);
+    save();close();render();toast(isNew?"Added":"Saved")};
+  $("#fName").focus();
+}
+function topicSheet(){
+  const f=sheet(`<h3>New topic</h3><label>Name<input class="field" id="tName" required placeholder="e.g. Travel"></label>
+    <div class="row"><button class="btn" type="button" data-close>Cancel</button><button class="btn primary" type="submit">Create</button></div>`);
+  f.onsubmit=e=>{e.preventDefault();const name=$("#tName").value.trim();let id=slug(name),i=2;
+    while(data.topics.some(t=>t.id===id))id=slug(name)+"-"+i++;
+    data.topics.push({id,name});save();close();current=id;history.replaceState(null,"","#"+id);render();toast("Topic created")};
+  $("#tName").focus();
+}
+function confirmDeleteTopic(id){
+  const t=data.topics.find(x=>x.id===id),n=data.apps.filter(a=>a.topic===id).length;
+  const f=sheet(`<h3>Delete “${esc(t.name)}”?</h3><p style="margin:0">This also removes its ${n} app${n===1?"":"s"} from the hub. The apps themselves stay on your phone.</p>
+    <div class="row"><button class="btn" type="button" data-close>Keep</button><button class="btn primary" type="submit" style="background:var(--danger);border-color:var(--danger)">Delete</button></div>`);
+  f.onsubmit=e=>{e.preventDefault();data.topics=data.topics.filter(x=>x.id!==id);data.apps=data.apps.filter(a=>a.topic!==id);
+    save();close();current="all";history.replaceState(null,"",location.pathname);render();toast("Topic deleted")};
+}
+function backupSheet(){
+  const json=JSON.stringify({topics:data.topics,apps:data.apps},null,1);
+  const f=sheet(`<h3>Backup and restore</h3><p style="margin:0;color:var(--muted);font-size:.85rem">Copy this to move your hub to another phone or browser. To restore, paste a backup and tap Restore.</p>
+    <textarea class="field" id="bak" spellcheck="false">${esc(json)}</textarea>
+    <div class="row"><button class="btn" type="button" id="copyB">Copy</button><button class="btn" type="button" data-close>Close</button><button class="btn primary" type="submit">Restore</button></div>`);
+  $("#copyB").onclick=()=>{const ta=$("#bak");navigator.clipboard?.writeText(ta.value).then(()=>toast("Copied"),()=>{ta.select();toast("Selected. Copy it manually")})??(ta.select(),toast("Selected. Copy it manually"))};
+  f.onsubmit=e=>{e.preventDefault();try{const d=JSON.parse($("#bak").value);if(!Array.isArray(d.topics)||!Array.isArray(d.apps))throw 0;
+    data={topics:d.topics,apps:d.apps};save();close();fromHash();toast("Restored")}catch(_){toast("That backup isn't valid JSON from App Hub")}};
+}
+fromHash();
+if("serviceWorker" in navigator&&location.protocol==="https:"&&!location.hostname.endsWith("claude.ai")){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+</script>
+</body></html>
